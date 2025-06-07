@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
@@ -10,24 +10,28 @@ import { RestaurantModule } from './restaurant/restaurant.module';
 import { MenuModule } from './menu/menu.module';
 import { FoodModule } from './food/food.module';
 
+import { AuthModule } from './auth/auth.module';
+import { AuthMiddleware } from './common/middleware/auth.middleware';
+
+import typeOrmConfig from './typeorm.config';
+
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5433, // puerto correcto según tu Docker
-      username: 'postgres',
-      password: 'mipassword', // cambiá si usás otra
-      database: 'tpi', // base que ya creaste 
-      synchronize: true, // solo para desarrollo
-      entities,
-    }),
+    TypeOrmModule.forRoot(typeOrmConfig),
     TypeOrmModule.forFeature(entities),
     RestaurantModule,
     MenuModule,
     FoodModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(AuthMiddleware)
+      .forRoutes('protegido'); // Aquí decides qué rutas protege el middleware
+  }
+}
+
